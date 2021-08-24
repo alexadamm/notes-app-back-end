@@ -2,154 +2,154 @@ const autoBind = require('auto-bind');
 const ClientError = require('../../exceptions/ClientError');
 
 class NotesHandler {
-    constructor(service, validator){
-        this._service = service;
-        this._validator = validator;
-        autoBind(this);
+  constructor(service, validator) {
+    this._service = service;
+    this._validator = validator;
+    autoBind(this);
+  }
+
+  async postNoteHandler(request, h) {
+    try {
+      this._validator.validateNotePayload(request.payload);
+      const { title = 'untitled', body, tags } = request.payload;
+
+      const noteId = await this._service.addNote({ title, body, tags });
+
+      const response = h.response({
+        status: 'success',
+        message: 'Catatan berhasil ditambahkan',
+        data: {
+          noteId,
+        },
+      });
+      response.code(201);
+      return response;
+    } catch (error) {
+      if (error instanceof ClientError) {
+        const response = h.response({
+          status: 'fail',
+          message: error.message,
+        });
+        response.code(error.statusCode);
+        return response;
+      }
+
+      // Server error
+      const response = h.response({
+        status: 'error',
+        message: 'Maaf, terjadi kegagalan pada server kami.',
+      });
+      response.code(500);
+      console.error(error);
+      return response;
     }
+  }
 
-    async postNoteHandler(request, h){
-        try{
-            this._validator.validateNotePayload(request.payload);
-            const { title = 'untitled', body, tags } = request.payload;
+  async getNotesHandler() {
+    const notes = await this._service.getNotes();
 
-            const noteId = await this._service.addNote({ title, body, tags });
+    return {
+      status: 'success',
+      data: {
+        notes,
+      },
+    };
+  }
 
-            const response = h.response({
-                status: 'success',
-                message: 'Catatan berhasil ditambahkan',
-                data: {
-                    noteId,
-                },
-            })
-            response.code(201);
-            return response;
-        } catch (error){
-            if (error instanceof ClientError) {
-                const response = h.response({
-                    status: 'fail',
-                    message: error.message,
-                });
-                response.code(error.statusCode);
-                return response;
-            }
+  async getNoteByIdHandler(request, h) {
+    try {
+      const { id } = request.params;
+      const note = await this._service.getNoteById(id);
 
-            //Server error
-            const response = h.response({
-                status: 'error',
-                message: 'Maaf, terjadi kegagalan pada server kami.'
-            });
-            response.code(500);
-            console.error(error);
-            return response;
-        }
+      return {
+        status: 'success',
+        data: {
+          note,
+        },
+      };
+    } catch (error) {
+      if (error instanceof ClientError) {
+        const response = h.response({
+          status: 'fail',
+          message: error.message,
+        });
+        response.code(error.statusCode);
+        return response;
+      }
+
+      // Server error
+      const response = h.response({
+        status: 'error',
+        message: 'Maaf, terjadi kegagalan pada server kami.',
+      });
+      response.code(500);
+      console.error(error);
+      return response;
     }
+  }
 
-    async getNotesHandler(){
-        const notes = await this._service.getNotes()
+  async putNoteByIdHandler(request, h) {
+    try {
+      this._validator.validateNotePayload(request.payload);
+      const { title, body, tags } = request.payload;
+      const { id } = request.params;
 
-        return {
-            status: 'success',
-            data: { 
-                notes,
-            },
-        };
+      await this._service.editNoteById(id, { title, body, tags });
+
+      return {
+        status: 'success',
+        message: 'Catatan berhasil diperbarui',
+      };
+    } catch (error) {
+      if (error instanceof ClientError) {
+        const response = h.response({
+          status: 'fail',
+          message: error.message,
+        });
+        response.code(error.statusCode);
+        return response;
+      }
+
+      // Server error
+      const response = h.response({
+        status: 'error',
+        message: 'Maaf, terjadi kegagalan pada server kami.',
+      });
+      response.code(500);
+      console.error(error);
+      return response;
     }
+  }
 
-    async getNoteByIdHandler(request, h){
-        try{    
-            const { id } = request.params;
-            const note = await this._service.getNoteById(id);
-    
-            return {
-                status: 'success',
-                data: {
-                    note,
-                }
-            }
-        } catch (error) {
-            if (error instanceof ClientError) {
-                const response = h.response({
-                    status: 'fail',
-                    message: error.message,
-                });
-                response.code(error.statusCode);
-                return response;
-            }
-            
-            //Server error
-            const response = h.response({
-                status: 'error',
-                message: 'Maaf, terjadi kegagalan pada server kami.'
-            });
-            response.code(500);
-            console.error(error);
-            return response;
-        }
+  async deleteNoteByIdHandler(request, h) {
+    try {
+      const { id } = request.params;
+      await this._service.deleteNoteById(id);
+
+      return {
+        status: 'success',
+        message: 'Catatan berhasil dihapus',
+      };
+    } catch (error) {
+      if (error instanceof ClientError) {
+        const response = h.response({
+          status: 'fail',
+          message: error.message,
+        });
+        response.code(error.statusCode);
+        return response;
+      }
+
+      // Server error
+      const response = h.response({
+        status: 'error',
+        message: 'Maaf, terjadi kegagalan pada server kami.',
+      });
+      response.code(500);
+      console.error(error);
+      return response;
     }
-
-    async putNoteByIdHandler(request, h){
-        try{
-            this._validator.validateNotePayload(request.payload);
-            const { title, body, tags } = request.payload;
-            const { id } = request.params;
-
-            await this._service.editNoteById(id, { title, body, tags });
-
-            return {
-                status: 'success',
-                message: 'Catatan berhasil diperbarui'
-            }
-        } catch (error) {
-            if (error instanceof ClientError) {
-                const response = h.response({
-                    status: 'fail',
-                    message: error.message,
-                });
-                response.code(error.statusCode);
-                return response
-            }
-
-            // Server error
-            const response = h.response({
-                status: 'error',
-                message: 'Maaf, terjadi kegagalan pada server kami.',
-            });
-            response.code(500);
-            console.error(error)
-            return response;
-        }
-    }
-    
-    async deleteNoteByIdHandler(request, h){
-        try{
-            const { id } = request.params;
-            await this._service.deleteNoteById(id);
-
-            return { 
-                status: 'success',
-                message: 'Catatan berhasil dihapus',
-            }
-        } catch (error) {
-            if (error instanceof ClientError) {
-                const response = h.response({
-                    status: 'fail',
-                    message: error.message,
-                })
-                response.code(error.statusCode);
-                return response;
-            }
-
-            //Server error
-            const response = h.response({
-                status: 'error',
-                message: 'Maaf, terjadi kegagalan pada server kami.',
-            });
-            response.code(500);
-            console.error(error)
-            return response;
-        }
-    }
+  }
 }
 
-module.exports = NotesHandler
+module.exports = NotesHandler;
